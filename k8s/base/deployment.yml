@@ -34,6 +34,8 @@ spec:
         runAsUser: 10001
         runAsGroup: 10001
         fsGroup: 10001
+      imagePullSecrets:
+      - name: ghcr-secret
       containers:
       - name: app
         image: ghcr.io/bamideleflint/argostack/sample-app:v1.0.0
