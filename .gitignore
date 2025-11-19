@@ -1,0 +1,15 @@
+# Large binary files
+*.exe
+*.zip
+# Helm binaries
+helm/
+helm-extracted/
+# Kustomize binaries
+kustomize/
+# kube-score binaries
+kube-score*
+# Large files with hash names (likely from previous commits)
+*[0-9a-f]{40}*
+# OS specific files
+*.DS_Store
+Thumbs.db

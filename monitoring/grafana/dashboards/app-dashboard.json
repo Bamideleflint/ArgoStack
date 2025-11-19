@@ -1,0 +1,137 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Application Dashboard",
+    "tags": ["application"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "25s",
+    "panels": [
+      {
+        "id": 1,
+        "type": "graph",
+        "title": "Application Requests",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 9
+        },
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{path}}",
+            "refId": "A"
+          }
+        ],
+        "xaxis": {
+          "show": true
+        },
+        "yaxes": [
+          {
+            "format": "reqps",
+            "show": true
+          },
+          {
+            "format": "short",
+            "show": true
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "type": "graph",
+        "title": "Error Rate",
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 12,
+          "h": 9
+        },
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"5..\"}[5m])",
+            "legendFormat": "{{method}} {{path}}",
+            "refId": "A"
+          }
+        ],
+        "xaxis": {
+          "show": true
+        },
+        "yaxes": [
+          {
+            "format": "reqps",
+            "show": true
+          },
+          {
+            "format": "short",
+            "show": true
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "type": "singlestat",
+        "title": "Memory Usage",
+        "gridPos": {
+          "x": 0,
+          "y": 9,
+          "w": 8,
+          "h": 3
+        },
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{container=\"app\"}",
+            "refId": "A"
+          }
+        ],
+        "format": "bytes",
+        "prefix": "Memory: ",
+        "postfix": "B",
+        "valueName": "current"
+      },
+      {
+        "id": 4,
+        "type": "singlestat",
+        "title": "CPU Usage",
+        "gridPos": {
+          "x": 8,
+          "y": 9,
+          "w": 8,
+          "h": 3
+        },
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{container=\"app\"}[5m])",
+            "refId": "A"
+          }
+        ],
+        "format": "percentunit",
+        "prefix": "CPU: ",
+        "valueName": "current"
+      },
+      {
+        "id": 5,
+        "type": "singlestat",
+        "title": "Uptime",
+        "gridPos": {
+          "x": 16,
+          "y": 9,
+          "w": 8,
+          "h": 3
+        },
+        "targets": [
+          {
+            "expr": "time() - process_start_time_seconds",
+            "refId": "A"
+          }
+        ],
+        "format": "s",
+        "prefix": "Uptime: ",
+        "postfix": "s",
+        "valueName": "current"
+      }
+    ]
+  }
+}

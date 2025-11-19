@@ -1,0 +1,155 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Kubernetes Dashboard",
+    "tags": ["kubernetes"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "25s",
+    "panels": [
+      {
+        "id": 1,
+        "type": "graph",
+        "title": "Pod CPU Usage",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 9
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(container_cpu_usage_seconds_total{pod!=\"\", container!=\"POD\"}[5m])) by (pod)",
+            "legendFormat": "{{pod}}",
+            "refId": "A"
+          }
+        ],
+        "xaxis": {
+          "show": true
+        },
+        "yaxes": [
+          {
+            "format": "short",
+            "show": true
+          },
+          {
+            "format": "short",
+            "show": true
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "type": "graph",
+        "title": "Pod Memory Usage",
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 12,
+          "h": 9
+        },
+        "targets": [
+          {
+            "expr": "sum(container_memory_usage_bytes{pod!=\"\", container!=\"POD\"}) by (pod)",
+            "legendFormat": "{{pod}}",
+            "refId": "A"
+          }
+        ],
+        "xaxis": {
+          "show": true
+        },
+        "yaxes": [
+          {
+            "format": "bytes",
+            "show": true
+          },
+          {
+            "format": "short",
+            "show": true
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "type": "singlestat",
+        "title": "Nodes",
+        "gridPos": {
+          "x": 0,
+          "y": 9,
+          "w": 6,
+          "h": 3
+        },
+        "targets": [
+          {
+            "expr": "count(kube_node_info)",
+            "refId": "A"
+          }
+        ],
+        "format": "none",
+        "prefix": "Nodes: ",
+        "valueName": "current"
+      },
+      {
+        "id": 4,
+        "type": "singlestat",
+        "title": "Pods",
+        "gridPos": {
+          "x": 6,
+          "y": 9,
+          "w": 6,
+          "h": 3
+        },
+        "targets": [
+          {
+            "expr": "count(kube_pod_info)",
+            "refId": "A"
+          }
+        ],
+        "format": "none",
+        "prefix": "Pods: ",
+        "valueName": "current"
+      },
+      {
+        "id": 5,
+        "type": "singlestat",
+        "title": "Deployments",
+        "gridPos": {
+          "x": 12,
+          "y": 9,
+          "w": 6,
+          "h": 3
+        },
+        "targets": [
+          {
+            "expr": "count(kube_deployment_status_replicas)",
+            "refId": "A"
+          }
+        ],
+        "format": "none",
+        "prefix": "Deployments: ",
+        "valueName": "current"
+      },
+      {
+        "id": 6,
+        "type": "singlestat",
+        "title": "Services",
+        "gridPos": {
+          "x": 18,
+          "y": 9,
+          "w": 6,
+          "h": 3
+        },
+        "targets": [
+          {
+            "expr": "count(kube_service_info)",
+            "refId": "A"
+          }
+        ],
+        "format": "none",
+        "prefix": "Services: ",
+        "valueName": "current"
+      }
+    ]
+  }
+}

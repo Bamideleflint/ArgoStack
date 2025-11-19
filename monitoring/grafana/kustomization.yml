@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - grafana-config.yml
+
+configMapGenerator:
+  - name: grafana-dashboards
+    files:
+      - dashboards/app-dashboard.json
+      - dashboards/kubernetes-dashboard.json
+      - dashboards/istio-dashboard.json
+      - dashboards/k6-dashboard.json
