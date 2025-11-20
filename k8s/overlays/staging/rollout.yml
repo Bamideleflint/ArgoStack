@@ -19,19 +19,18 @@ spec:
         - analysis:
             templates:
               - templateName: success-rate
-            startingStep: 1
         - pause: {duration: 30}
         - setWeight: 50
         - analysis:
             templates:
               - templateName: success-rate
-            startingStep: 3
         - pause: {duration: 30}
         - setWeight: 100
   template:
     metadata:
       labels:
         app: sample-app
+        app.kubernetes.io/managed-by: argocd
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
