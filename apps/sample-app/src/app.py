@@ -141,6 +141,7 @@ def index():
         'service': 'Sample Application',
         'version': APP_VERSION,
         'environment': ENVIRONMENT,
+        'status': 'canary-test-active',
         'endpoints': {
             'health': '/health',
             'ready': '/ready',
