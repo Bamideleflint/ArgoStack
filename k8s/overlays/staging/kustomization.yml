@@ -4,8 +4,11 @@ kind: Kustomization
 
 namespace: staging
 
+patchesStrategicMerge:
+  - patch-delete-deployment.yml
 resources:
   - ../../base
+  - rollout.yml
 
 replicas:
   - name: sample-app
