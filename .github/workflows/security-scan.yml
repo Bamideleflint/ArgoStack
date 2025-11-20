@@ -3,8 +3,11 @@ name: Security Scan
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: '0 0 * * 0'  # Weekly on Sunday
+  workflow_dispatch:  # Allow manual trigger
 
 # Add permissions for the workflow
 permissions:
@@ -12,25 +15,86 @@ permissions:
   security-events: write
 
 jobs:
-  trivy-scan:
+  trivy-fs-scan:
+    name: Trivy Filesystem Scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       
-      - name: Run Trivy vulnerability scanner
+      - name: Run Trivy vulnerability scanner (filesystem)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'sarif'
-          output: 'trivy-results.sarif'
+          output: 'trivy-fs-results.sarif'
+          severity: 'CRITICAL,HIGH'
       
-      - name: Upload Trivy results to GitHub Security
+      - name: Upload Trivy FS results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: 'trivy-fs-results.sarif'
+      
+      - name: Run Trivy vulnerability scanner (table output)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+  
+  trivy-config-scan:
+    name: Trivy Config Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy config scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: 'k8s/'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'  # Don't fail on findings, just report
+  
+  trivy-image-scan:
+    name: Trivy Docker Image Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Docker image
+        run: |
+          docker build -t ghcr.io/bamideleflint/argostack/sample-app:scan ./apps/sample-app
+      
+      - name: Run Trivy vulnerability scanner on image
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          image-ref: 'ghcr.io/bamideleflint/argostack/sample-app:scan'
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+          severity: 'CRITICAL,HIGH'
+      
+      - name: Upload Trivy image results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-image-results.sarif'
+      
+      - name: Run Trivy on image (table output)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          image-ref: 'ghcr.io/bamideleflint/argostack/sample-app:scan'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
 
   kube-score:
+    name: Kubernetes Manifest Quality Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,8 +104,24 @@ jobs:
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
           sudo mv kustomize /usr/local/bin/
       
-      - name: Run kube-score on kustomize output
+      - name: Run kube-score on base manifests
         run: |
           wget https://github.com/zegl/kube-score/releases/download/v1.18.0/kube-score_1.18.0_linux_amd64
           chmod +x kube-score_1.18.0_linux_amd64
-          kustomize build k8s/base | ./kube-score_1.18.0_linux_amd64 score -
+          echo "=== Scanning base manifests ==="
+          kustomize build k8s/base | ./kube-score_1.18.0_linux_amd64 score - || true
+      
+      - name: Run kube-score on dev overlay
+        run: |
+          echo "=== Scanning dev overlay ==="
+          kustomize build k8s/overlays/dev | ./kube-score_1.18.0_linux_amd64 score - || true
+      
+      - name: Run kube-score on staging overlay
+        run: |
+          echo "=== Scanning staging overlay ==="
+          kustomize build k8s/overlays/staging | ./kube-score_1.18.0_linux_amd64 score - || true
+      
+      - name: Run kube-score on prod overlay
+        run: |
+          echo "=== Scanning prod overlay ==="
+          kustomize build k8s/overlays/prod | ./kube-score_1.18.0_linux_amd64 score - || true

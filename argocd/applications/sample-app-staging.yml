@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/Bamideleflint/ArgoStack.git
-    targetRevision: develop
+    targetRevision: main
     path: k8s/overlays/staging
   destination:
     server: https://kubernetes.default.svc
