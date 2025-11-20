@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: bamideleflint/argostack/sample-app
 
 jobs:
   test:
@@ -30,7 +30,7 @@ jobs:
           manifests: |
             k8s/base/deployment.yml
             k8s/base/service.yml
-            k8s/base/networkpolicy.yaml
+            k8s/base/servicemonitor.yml
 
   build-and-push:
     needs: test
