@@ -43,6 +43,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
+      - name: Update prod overlay image tag
+        run: |
+          sed -i "s|newTag: .*|newTag: ${{ github.ref_name }}|g" k8s/overlays/prod/kustomization.yml
+      
+      - name: Commit updated prod manifest
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git add k8s/overlays/prod/kustomization.yml
+          git commit -m "Release: set prod newTag to ${{ github.ref_name }}" || exit 0
+          git push
+      
       - name: Create GitHub Release
         uses: actions/create-release@v1
         env:
