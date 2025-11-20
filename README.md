@@ -1,134 +1,154 @@
-# ArgoStack - DevOps Project with ArgoCD, Grafana & Prometheus
+# ArgoStack - Production-Ready Kubernetes GitOps Platform
 
-This project demonstrates a complete DevOps setup using ArgoCD for GitOps, Prometheus for monitoring, and Grafana for visualization in a Kubernetes environment.
+**ArgoStack** is a complete, production-ready Kubernetes platform demonstrating modern DevOps best practices. It combines GitOps delivery, progressive deployment strategies, comprehensive monitoring, security scanning, and automated testing in a beginner-friendly package.
 
-## 📚 Complete Documentation
+## 🎯 What Is This Project?
 
-For comprehensive documentation, please see [docs/complete-documentation.md](docs/complete-documentation.md).
+ArgoStack is a **learning-focused DevOps reference implementation** that shows you how to build a complete cloud-native platform from scratch. Whether you're learning Kubernetes, preparing for DevOps interviews, or building your portfolio, this project provides hands-on experience with industry-standard tools and practices.
 
-## Project Structure
+### What You'll Learn
 
-ArgoStack/
-├── .github/
-│   └── workflows/
-│       ├── ci.yml
-│       ├── security-scan.yml
-│       └── release.yml
-├── apps/
-│   └── sample-app/
-│       ├── Dockerfile
-│       ├── .dockerignore
-│       └── src/
-├── k8s/
-│   ├── base/
-│   │   ├── deployment.yml
-│   │   ├── service.yml
-│   │   ├── servicemonitor.yml
-│   │   └── kustomization.yml
-│   ├── overlays/
-│   │   ├── dev/
-│   │   │   └── kustomization.yml
-│   │   ├── staging/
-│   │   │   └── kustomization.yml
-│   │   └── prod/
-│   │       └── kustomization.yml
-├── argocd/
-│   ├── applications/
-│   │   ├── sample-app-dev.yml
-│   │   ├── sample-app-staging.yml
-│   │   └── sample-app-prod.yml
-│   └── projects/
-│       └── project.yml
-├── monitoring/
-│   ├── prometheus/
-│   │   ├── prometheus-config.yml
-│   │   ├── alerting-rules.yml
-│   │   └── kustomization.yml
-│   └── grafana/
-│       ├── dashboards/
-│       │   ├── app-dashboard.json
-│       │   └── kubernetes-dashboard.json
-│       ├── grafana-config.yml
-│       └── kustomization.yml
+- **GitOps with ArgoCD**: Automated, declarative deployments from Git
+- **Progressive Delivery**: Canary deployments with automated analysis and rollback
+- **Monitoring Stack**: Prometheus metrics, Grafana dashboards, and intelligent alerting
+- **CI/CD Pipelines**: GitHub Actions workflows for testing, building, and security scanning
+- **Multi-Environment**: Proper dev → staging → production promotion workflow
+- **Security**: Container scanning, network policies, and best practices
+- **Load Testing**: Performance validation with K6
 
-├── scripts\
-│   ├── setup-cluster.sh\
-│   ├── start-cluster.sh\
-│   └── install-tools.sh
-└── docs/
-    └── complete-documentation.md
+## 📚 Documentation
 
-## Components
+- **[Complete Setup Guide](docs/complete-documentation.md)** - Step-by-step instructions with commands
+- **[Troubleshooting Guide](docs/troubleshooting.md)** - Common errors and solutions
 
-### 1. GitHub Actions CI/CD Pipeline
-- **ci.yml**: Continuous integration pipeline that runs tests, builds and pushes Docker images, and updates Kubernetes manifests
-- **security-scan.yml**: Security scanning with Trivy and kube-score
-- **release.yml**: Release pipeline that creates GitHub releases
+## 🚀 Quick Start
 
-### 2. Kubernetes Manifests with Kustomize
-- **base**: Base Kubernetes manifests for the sample application
-- **overlays**: Environment-specific overlays for dev, staging, and production
+```bash
+# 1. Install tools
+bash scripts/install-tools.sh
 
-### 3. ArgoCD Applications
-- **applications**: ArgoCD Application manifests for each environment
-- **projects**: ArgoCD Project definitions
+# 2. Start Minikube cluster
+bash scripts/start-cluster.sh
 
-### 4. Monitoring with Prometheus and Grafana
-- **prometheus**: Prometheus configuration and alerting rules
-- **grafana**: Grafana configuration and dashboards
+# 3. Deploy all components
+bash scripts/setup-cluster.sh
 
+# 4. Access dashboards
+kubectl port-forward -n argocd svc/argocd-server 8080:443
+kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
+```
 
+**Credentials:**
+- ArgoCD: `admin` / (get password: `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d`)
+- Grafana: `admin` / `admin123`
 
-### 6. Scripts
-- **setup-cluster.sh**: Script to set up the Kubernetes cluster with all components
-- **install-tools.sh**: Script to install required tools
+## 📦 Key Components
 
-## Getting Started
+### 1. Sample Application (`apps/sample-app`)
+- Python Flask REST API with health endpoints
+- Prometheus metrics export
+- Docker containerization
 
-1. Install required tools:
-   ```bash
-   ./scripts/install-tools.sh
-   ```
+### 2. GitOps with ArgoCD (`argocd/`)
+- Application definitions for dev, staging, production
+- Auto-sync enabled for continuous delivery
+- Health status monitoring
 
-2. Start the Kubernetes cluster:
-   ```bash
-   ./scripts/start-cluster.sh
-   ```
+### 3. Progressive Delivery (`k8s/overlays/*/rollout.yml`)
+- Argo Rollouts for canary deployments
+- Automated Prometheus-based analysis
+- Traffic shifting: 20% → 50% → 100%
+- Automatic rollback on failures
 
-3. Set up the cluster with all components:
-   ```bash
-   ./scripts/setup-cluster.sh
-   ```
+### 4. Monitoring Stack (`monitoring/`)
+- Prometheus for metrics collection
+- Grafana with custom dashboards
+- 16 production-ready alert rules
+- ServiceMonitor for automatic scraping
 
-4. Access the tools:
-   - ArgoCD: `kubectl port-forward svc/argocd-server -n argocd 8080:443`
-   - Grafana: `kubectl port-forward svc/grafana -n monitoring 3000:80`
+### 5. CI/CD Pipelines (`.github/workflows/`)
+- **ci.yml**: Build, test, scan on every push
+- **security-scan.yml**: Trivy + kube-score
+- **release.yml**: Production releases via tags
 
-## Features
+### 6. Load Testing (`load-testing/`)
+- K6 scenarios: baseline, stress, spike, soak
+- Kubernetes Job integration
 
-- **GitOps**: Automated deployment using ArgoCD
-- **Monitoring**: Comprehensive monitoring with Prometheus
-- **Visualization**: Dashboards with Grafana
-- **Security**: Automated security scanning
-- **Multi-environment**: Dev, staging, and production environments
-- **Helm**: Helm charts for application deployment
-- **Kustomize**: Environment-specific configurations
+## 🏗️ Architecture
 
-## Prerequisites
+```
+┌──────────────────────────────────────────────────────┐
+│                GitHub Repository                     │
+│  (Source of Truth for Infrastructure & Code)         │
+└────────────────┬─────────────────────────────────────┘
+                 │
+        ┌────────┴──────────┐
+        │                   │
+   ┌────▼─────┐         ┌───▼────────┐
+   │ GitHub   │         │   ArgoCD   │
+   │ Actions  │         │  (GitOps)  │
+   │  (CI/CD) │         └─────┬──────┘
+   └────┬─────┘               │
+        │                     │ Auto-sync
+        │ Build & Push        │
+        ▼                     ▼
+   ┌─────────────────────────────────┐
+   │    Kubernetes Cluster           │
+   │  ┌─────────┬──────────┬───────┐ │
+   │  │   Dev   │ Staging  │  Prod │ │
+   │  │ (Canary)│ (Canary) │(Stable)│ │
+   │  └─────────┴──────────┴───────┘ │
+   │                                  │
+   │  ┌──────────────────────────┐   │
+   │  │  Monitoring & Security   │   │
+   │  │ Prometheus | Grafana     │   │
+   │  │ Alertmanager | K6        │   │
+   │  └──────────────────────────┘   │
+   └─────────────────────────────────┘
+```
 
-- Kubernetes cluster (minikube or cloud provider)
-- kubectl
-- Helm
-- Kustomize
-- Docker
-- ArgoCD CLI
+## 🎓 Use Cases
 
-## Contact
+- **Learning**: Hands-on experience with production DevOps tools
+- **Portfolio**: Demonstrate cloud-native expertise to employers
+- **Reference**: Template for real-world Kubernetes projects
+- **Interview Prep**: Practice with common DevOps interview topics
 
-For questions or support, please contact:
-- Email: oluwafunsho.osho@gmail.com
-- GitHub: [Bamideleflint](https://github.com/Bamideleflint)
+## ✨ Features
 
-## License
+- ✅ Fully automated GitOps workflow
+- ✅ Progressive canary deployments with rollback
+- ✅ Comprehensive monitoring and alerting
+- ✅ Security scanning in CI/CD
+- ✅ Multi-environment support (dev/staging/prod)
+- ✅ Load testing integration
+- ✅ Custom Grafana dashboards
+- ✅ Network policies for security
+- ✅ Pod disruption budgets for availability
+- ✅ Beginner-friendly documentation
 
-This project is licensed under the MIT License.
+## 📋 Prerequisites
+
+- **OS**: Linux or WSL2 on Windows
+- **Tools**: Docker, kubectl, helm, kustomize
+- **Cluster**: Minikube (local) or any Kubernetes cluster
+- **Memory**: 8GB RAM minimum
+- **CPU**: 4 cores recommended
+
+## 🤝 Contributing
+
+Contributions welcome! Please check out the documentation for setup details.
+
+## 📧 Contact
+
+- **Email**: oluwafunsho.osho@gmail.com
+- **GitHub**: [Bamideleflint](https://github.com/Bamideleflint)
+
+## 📄 License
+
+MIT License - See LICENSE file for details
+
+---
+
+**Made with ❤️ for the DevOps community**

@@ -1,633 +1,464 @@
-# ArgoStack Troubleshooting Guide
+# Troubleshooting Guide
 
-This document contains common issues encountered during setup and deployment, along with their solutions.
-
----
+This guide documents common errors encountered during setup and their solutions.
 
 ## Table of Contents
 
-1. [Kubernetes Cluster Issues](#kubernetes-cluster-issues)
-2. [Docker and Container Issues](#docker-and-container-issues)
-3. [kubectl Configuration Issues](#kubectl-configuration-issues)
-4. [Personal Configuration Issues](#personal-configuration-issues)
-5. [Installation Script Issues](#installation-script-issues)
-6. [Monitoring Stack Issues](#monitoring-stack-issues)
-7. [Quick Reference Commands](#quick-reference-commands)
+1. [Cluster Setup Issues](#cluster-setup-issues)
+2. [GitHub Actions / CI/CD Issues](#github-actions--cicd-issues)
+3. [ArgoCD Issues](#argocd-issues)
+4. [Monitoring Stack Issues](#monitoring-stack-issues)
+5. [Application Deployment Issues](#application-deployment-issues)
+6. [Networking Issues](#networking-issues)
 
 ---
 
-## Kubernetes Cluster Issues
+## Cluster Setup Issues
 
-### Issue 1: Kind Cluster Creation Fails with Control Plane Timeout
+### Error: Minikube won't start
 
-**Error Message:**
-```
-ERROR: failed to create cluster: failed to init node with kubeadm
-couldn't initialize a Kubernetes cluster
-error: timed out waiting for the condition
-```
-
-**Root Cause:**
-- Kind has compatibility issues with WSL2's cgroup configuration
-- Port mappings (80, 443) in kind-config.yaml cause conflicts in WSL
-- kubeadmConfigPatches can trigger InitConfiguration failures
-
-**Solution:**
-1. **Switch to Minikube** (Recommended for WSL):
-   ```bash
-   # Install minikube
-   curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-   sudo install minikube-linux-amd64 /usr/local/bin/minikube
-   rm minikube-linux-amd64
-   
-   # Delete any existing cluster
-   minikube delete --all --purge
-   rm -rf ~/.minikube
-   
-   # Start fresh cluster
-   minikube start --driver=docker --force --delete-on-failure
-   ```
-
-2. **Alternative: Simplified Kind Config** (If you must use Kind):
-   - Remove kubeadmConfigPatches
-   - Remove extraPortMappings for ports 80 and 443
-   - Use minimal configuration
-
-**Status:** ✅ Resolved by migrating to Minikube
-
----
-
-### Issue 2: Minikube Fails with "DRV_UNSUPPORTED_OS" Error
-
-**Error Message:**
-```
-❌  Exiting due to DRV_UNSUPPORTED_OS: The driver 'docker' is not supported on linux/amd64
+**Symptoms:**
+```bash
+minikube start
+❌ Exiting due to HOST_JUJU_LOCK_PERMISSION: Failed to save config: writing lockfile: unable to get lock
 ```
 
-**Root Cause:**
-- Corrupted minikube profile from previous failed attempts
-- Driver configuration conflict
+**Root Cause**: Conflicting minikube instances or corrupted state
 
 **Solution:**
 ```bash
-# Complete cleanup
+# Delete all minikube data
 minikube delete --all --purge
-rm -rf ~/.minikube
 
-# Start with force flag to bypass validation
-minikube start --driver=docker --force --delete-on-failure
-```
+# Start fresh
+minikube start --driver=docker --cpus=4 --memory=8192 --force --delete-on-failure
 
-**Status:** ✅ Resolved
-
----
-
-### Issue 3: Minikube Certificate Hostname Error
-
-**Error Message:**
-```
-error: apiServer.certSANs: Invalid value: "": altname is not a valid IP address
-❌  Exiting due to K8S_INVALID_CERT_HOSTNAME
-```
-
-**Root Cause:**
-- Minikube bug with certificate configuration
-- Corrupted configuration from previous attempts
-
-**Solution:**
-```bash
-# Complete purge and fresh start
-minikube delete --all --purge
-rm -rf ~/.minikube
-
-# Start with explicit settings
-minikube start --driver=docker --force --delete-on-failure
-```
-
-**Expected Output:**
-```
-😄  minikube v1.37.0 on Ubuntu 24.04 (amd64)
-✨  Using the docker driver based on user configuration
-📌  Using Docker driver with root privileges
-👍  Starting "minikube" primary control-plane node in "minikube" cluster
-🚜  Pulling base image v0.0.48 ...
-💾  Downloading Kubernetes v1.34.0 preload ...
-🔥  Creating docker container (CPUs=2, Memory=3072MB) ...
-🐳  Preparing Kubernetes v1.34.0 on Docker 28.4.0 ...
-🔗  Configuring bridge CNI (Container Networking Interface) ...
-🔎  Verifying Kubernetes components...
-🌟  Enabled addons: storage-provisioner, default-storageclass
-🏄  Done! kubectl is now configured to use "minikube" cluster
-```
-
-**Verification:**
-```bash
+# Verify
 kubectl cluster-info
-# Should show: Kubernetes control plane is running at https://127.0.0.1:XXXXX
-
-kubectl get nodes
-# Should show: minikube   Ready    control-plane
 ```
-
-**Related Issue:** https://github.com/kubernetes/minikube/issues/9175
-
-**Status:** ✅ Resolved with complete cleanup
 
 ---
 
-## Docker and Container Issues
+### Error: Pods stuck in ImagePullBackOff
 
-### Issue 4: Docker Cgroup Driver Compatibility
-
-**Error Message:**
-```
-Cgroup Driver: cgroupfs
-WARNING: Docker is using cgroupfs instead of systemd
-```
-
-**Root Cause:**
-- Docker Desktop vs Docker Engine difference in WSL
-- cgroupfs vs systemd driver mismatch
-
-**Impact:**
-- Can cause Kind cluster failures
-- Less impactful with Minikube
-
-**Recommendation:**
-- Use Docker Engine instead of Docker Desktop for better performance
-- Minikube handles this better than Kind
-
-**Status:** ⚠️ Workaround: Use Minikube instead of Kind
-
----
-
-### Issue 5: Docker Image Registry Path Conflicts
-
-**Error:**
-- Multiple inconsistent Docker registry references found:
-  - `Bamidele1995/sample-app`
-  - `leke1995/sample-app`
-  - Missing proper GitHub Container Registry path
-
-**Root Cause:**
-- Project copied from another repository
-- Personal details not updated
-
-**Solution:**
-Updated all image references to use GitHub Container Registry:
-```
-ghcr.io/bamideleflint/argostack/sample-app:v1.0.0
+**Symptoms:**
+```bash
+kubectl get pods -n dev
+NAME                         READY   STATUS             RESTARTS   AGE
+sample-app-xxx-yyy          0/1     ImagePullBackOff   0          2m
 ```
 
-**Files Updated:**
-- `k8s/base/deployment.yml`
-- `helm-charts/sample-app/values.yml`
-- `k8s/overlays/dev/kustomization.yml`
-- `k8s/overlays/staging/kustomization.yml`
-- `k8s/overlays/prod/kustomization.yml`
-
-**Status:** ✅ Resolved
-
----
-
-## kubectl Configuration Issues
-
-### Issue 6: kubectl Not Configured - Connection Refused on localhost:8080
-
-**Error Message:**
-```
-The connection to the server localhost:8080 was refused - did you specify the right host or port?
-```
-
-**Root Cause:**
-- kubectl is not configured to connect to any cluster
-- No kubeconfig file or incorrect kubeconfig
+**Root Cause**: Missing imagePullSecret for private registry (GHCR)
 
 **Solution:**
 ```bash
-# For Minikube (automatic configuration)
-minikube start --driver=docker --force
+# Create secret in the namespace
+kubectl create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io \
+  --docker-username=YOUR_GITHUB_USERNAME \
+  --docker-password=YOUR_GITHUB_PAT \
+  -n dev
 
-# Verify configuration
-kubectl cluster-info
-kubectl get nodes
+# Repeat for other namespaces
+kubectl create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io \
+  --docker-username=YOUR_GITHUB_USERNAME \
+  --docker-password=YOUR_GITHUB_PAT \
+  -n staging
 
-# If still not working, manually update context
-minikube update-context
-
-# Check kubeconfig
-cat ~/.kube/config
+kubectl create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io \
+  --docker-username=YOUR_GITHUB_USERNAME \
+  --docker-password=YOUR_GITHUB_PAT \
+  -n production
 ```
-
-**For Kind (if using):**
-```bash
-kind get kubeconfig --name argostack > ~/.kube/config
-```
-
-**Status:** ✅ Resolved - Minikube auto-configures kubectl
 
 ---
 
-### Issue 7: Minikube Kubeconfig Misconfigured
+### Error: Helm timeout during monitoring stack installation
 
-**Error Message:**
-```
-kubeconfig: Misconfigured
-WARNING: Your kubectl is pointing to stale minikube-vm.
+**Symptoms:**
+```bash
+Error: timed out waiting for the condition
 ```
 
-**Root Cause:**
-- Previous failed minikube installations left stale config
-- Cluster exists but not properly registered in kubeconfig
+**Root Cause**: Insufficient cluster resources or slow image pulls
 
 **Solution:**
 ```bash
-# Update kubectl context
-minikube update-context
-
-# Or recreate from scratch
+# Increase cluster resources
+minikube stop
 minikube delete
-minikube start --driver=docker --force
-```
+minikube start --driver=docker --cpus=4 --memory=8192
 
-**Status:** ✅ Resolved
+# Use longer timeout
+helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --timeout 20m \
+  --wait
+```
 
 ---
 
-## Personal Configuration Issues
+## GitHub Actions / CI/CD Issues
 
-### Issue 8: Incorrect Personal Details in Configuration Files
+### Error: kubeval failed with exit code 1
 
-**Error:**
-- ArgoCD project references `https://github.com/your-org/*`
-- Helm chart maintainer shows "DevOps Team"
-- Mixed Docker usernames
+**Symptoms:**
+```
+ERR  - k8s/base/servicemonitor.yml: Failed initializing schema
+Error: The process '/usr/bin/kubeval' failed with exit code 1
+```
 
-**Root Cause:**
-- Project cloned from friend's repository
-- Template values not updated
+**Root Cause**: kubeval doesn't recognize CRDs (ServiceMonitor is from Prometheus Operator)
 
-**Solution:**
-Updated the following files with personal details:
+**Solution**: Use kubectl dry-run validation instead (already fixed in workflow)
 
-1. **argocd/projects/project.yml:**
-   ```yaml
-   sourceRepos:
-     - 'https://github.com/Bamideleflint/*'
-   ```
-
-2. **helm-charts/sample-app/Chart.yml:**
-   ```yaml
-   maintainers:
-     - name: Bamideleflint
-       email: oluwafunsho.osho@gmail.com
-   ```
-
-3. **All image references** (see Issue 5)
-
-**Status:** ✅ Resolved
+```yaml
+# In .github/workflows/ci.yml
+- name: Validate Kubernetes manifests
+  run: |
+    kubectl apply --dry-run=client -f k8s/base/deployment.yml
+    kubectl apply --dry-run=client -f k8s/base/service.yml
+```
 
 ---
 
-## Installation Script Issues
+### Error: Kustomize commonLabels deprecated warning
 
-### Issue 9: install-tools.sh Missing Minikube Installation Function
-
-**Error Message:**
+**Symptoms:**
 ```
-./scripts/install-tools.sh: line 170: install_minikube: command not found
+Warning: 'commonLabels' is deprecated. Please use 'labels' instead.
 ```
 
-**Root Cause:**
-- The `install-tools.sh` script called `install_minikube` function on line 170
-- The function definition was missing from the script
-- Script also attempted to display minikube version in output
+**Root Cause**: Using deprecated Kustomize field
 
-**Solution:**
-Added the missing `install_minikube()` function to the script:
+**Solution**: Update kustomization.yml files
 
-```bash
-# Install Minikube
-install_minikube() {
-    echo -e "${BLUE}Installing Minikube...${NC}"
-    if command -v minikube &> /dev/null; then
-        echo -e "${GREEN}Minikube already installed${NC}"
-    else
-        if [ "$MACHINE" == "Mac" ]; then
-            brew install minikube
-        else
-            curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-            sudo install minikube-linux-amd64 /usr/local/bin/minikube
-            rm minikube-linux-amd64
-        fi
-        echo -e "${GREEN}Minikube installed successfully${NC}"
-    fi
-}
+```yaml
+# OLD (deprecated)
+commonLabels:
+  app.kubernetes.io/managed-by: argocd
+
+# NEW (correct)
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: argocd
 ```
-
-**Verification:**
-```bash
-./scripts/install-tools.sh
-# Should install all tools including minikube without errors
-
-which minikube
-# Should show: /usr/local/bin/minikube
-```
-
-**Status:** ✅ Resolved - Function added to install-tools.sh
 
 ---
 
-### Issue 10: setup-cluster.sh Incomplete Script
+### Error: GitHub Actions can't find networkpolicy.yml
 
-**Error:**
-- Script ran without errors but didn't deploy anything
-- No monitoring namespace or pods created
-- Script only defined functions but never executed them
+**Symptoms:**
+```
+ERR  - Could not open file k8s/base/networkpolicy.yml
+```
 
-**Root Cause:**
-- Script was missing:
-  - Shebang and initialization
-  - Color variable definitions
-  - Main function to call `install_prometheus()`
-  - Execution call to main function
+**Root Cause**: File not committed to repository
 
 **Solution:**
-Completed the script by adding:
-
-1. **Script header:**
 ```bash
-#!/bin/bash
-# Setup Kubernetes cluster with ArgoCD and monitoring tools
+cd ~/Argo-Project/ArgoStack
 
-set -e
-
-BLUE='\033[0;34m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+# Add and commit missing files
+git add k8s/base/networkpolicy.yml k8s/base/poddisruptionbudget.yml
+git commit -m "Add missing security manifests"
+git push origin main
 ```
 
-2. **Main function and execution:**
-```bash
-main() {
-    install_prometheus
-    
-    echo ""
-    echo -e "${GREEN}========================================${NC}"
-    echo -e "${GREEN}Cluster setup complete!${NC}"
-    echo -e "${GREEN}========================================${NC}"
-}
+---
 
-main
+## ArgoCD Issues
+
+### Error: ArgoCD application OutOfSync
+
+**Symptoms:**
+```bash
+kubectl get applications -n argocd
+NAME                 SYNC STATUS   HEALTH STATUS
+sample-app-dev       OutOfSync     Progressing
 ```
 
-**Verification:**
-```bash
-# After running the corrected script
-./scripts/setup-cluster.sh
+**Root Cause**: Manifest changes not yet synced or auto-sync disabled
 
-# Check monitoring pods
-kubectl get pods -n monitoring
-# Should show: prometheus, grafana, alertmanager, kube-state-metrics, node-exporter
+**Solution:**
+```bash
+# Manual sync
+argocd app sync sample-app-dev
+
+# Or enable auto-sync
+kubectl patch application sample-app-dev -n argocd \
+  --type merge \
+  --patch '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
 ```
 
-**Status:** ✅ Resolved - Script now properly deploys monitoring stack
+---
+
+### Error: ArgoCD server connection refused
+
+**Symptoms:**
+```bash
+argocd login localhost:8080
+FATA[0000] Failed to establish connection: connection refused
+```
+
+**Root Cause**: Port-forward not running
+
+**Solution:**
+```bash
+# Start port-forward in background
+kubectl port-forward -n argocd svc/argocd-server 8080:443 &
+
+# Wait a moment
+sleep 3
+
+# Get password
+ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+
+# Login
+argocd login localhost:8080 --username admin --password $ARGOCD_PASSWORD --insecure
+```
 
 ---
 
 ## Monitoring Stack Issues
 
-### Issue 11: Minikube API Server Connection Issues During Startup
+### Error: Grafana dashboards not showing
 
-**Error Message:**
-```
-E1119 14:49:57.028732 failed to get current CoreDNS ConfigMap
-The connection to the server localhost:8443 was refused
-Failed to inject host.minikube.internal into CoreDNS
-Unable to scale down deployment "coredns"
-Enabling 'default-storageclass' returned an error
-```
+**Symptoms**: Dashboards created but not visible in Grafana UI
 
-**Root Cause:**
-- API server temporarily unavailable during cluster initialization
-- Minikube trying to configure addons before API server fully ready
-- Previous failed cluster state interfering with new startup
+**Root Cause**: Dashboard ConfigMaps not labeled correctly or Grafana not restarted
 
 **Solution:**
 ```bash
-# Complete cleanup
-minikube delete --all --purge
+# Deploy dashboards with script
+bash scripts/deploy-dashboards.sh
 
-# Start with delete-on-failure flag
-minikube start --driver=docker --cpus=4 --memory=6144 --disk-size=20g --force --delete-on-failure
+# Restart Grafana
+kubectl rollout restart deployment prometheus-grafana -n monitoring
+
+# Wait for ready
+kubectl wait --for=condition=available --timeout=120s deployment/prometheus-grafana -n monitoring
 ```
-
-**Expected Outcome:**
-- Cluster should eventually start successfully
-- Minor errors during startup can be ignored if final status shows "Done!"
-- Verify with: `kubectl cluster-info` and `kubectl get nodes`
-
-**Status:** ✅ Resolved - Cluster starts successfully after cleanup
 
 ---
 
-### Issue 12: Prometheus Stack Installation Timing and Pod Status
+### Error: Prometheus not scraping sample-app metrics
+
+**Symptoms**: No data in Grafana for sample-app metrics
+
+**Root Cause**: ServiceMonitor not created or namespace label missing
+
+**Solution:**
+```bash
+# Check ServiceMonitor exists
+kubectl get servicemonitor -n dev
+
+# Label namespace for Prometheus
+kubectl label namespace dev prometheus=enabled
+
+# Restart Prometheus to pick up changes
+kubectl delete pod -n monitoring -l app.kubernetes.io/name=prometheus
+```
+
+---
+
+### Error: Alert rules not firing
+
+**Symptoms**: Conditions met but no alerts in Alertmanager
+
+**Root Cause**: Alert rules not loaded or query errors
+
+**Solution:**
+```bash
+# Check Prometheus rules
+kubectl get prometheusrule -n monitoring
+
+# View Prometheus UI to check rules status
+kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090
+
+# Visit http://localhost:9090/rules
+# Look for errors in rule evaluation
+```
+
+---
+
+## Application Deployment Issues
+
+### Error: Rollout stuck in Progressing
 
 **Symptoms:**
-- Helm shows status "failed" but pods are running
-- Pods stuck in `ContainerCreating` for several minutes
-- Grafana shows `2/3 Running` for extended period
-- `kube-state-metrics` in `CrashLoopBackOff`
+```bash
+kubectl get rollout -n staging
+NAME         DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+sample-app   3         3         1            2           10m
+```
 
-**Root Cause:**
-1. **Helm timeout:** 20-minute timeout can expire while pods are still initializing
-2. **Image pulling:** First-time downloads of large images (Grafana, Prometheus) take time
-3. **Grafana initialization:** Database migrations and plugin loading delay readiness
-4. **API connectivity:** `kube-state-metrics` temporary connection issues to Kubernetes API
+**Root Cause**: Canary analysis failing or pods not ready
 
 **Solution:**
-This is expected behavior on first installation. The `|| true` in the setup script prevents script failure:
-
 ```bash
-helm upgrade --install prometheus ... --timeout 20m --wait || true
+# Check rollout details
+kubectl describe rollout sample-app -n staging
+
+# Check analysis runs
+kubectl get analysisrun -n staging
+
+# Check pod status
+kubectl get pods -n staging
+
+# If stuck, abort and restart
+kubectl argo rollouts abort sample-app -n staging
+kubectl argo rollouts promote sample-app -n staging
 ```
-
-**Monitoring Progress:**
-```bash
-# Watch pods status in real-time
-kubectl get pods -n monitoring -w
-
-# Check specific pod details
-kubectl describe pod <pod-name> -n monitoring
-
-# View container logs
-kubectl logs <pod-name> -n monitoring -c <container-name>
-
-# Check which containers are ready
-kubectl get pod <pod-name> -n monitoring -o jsonpath='{range .status.containerStatuses[*]}{.name}{"\t"}{.ready}{"\n"}{end}'
-```
-
-**Expected Timeline:**
-- **0-2 min:** Pods in `Pending` or `ContainerCreating`
-- **2-5 min:** Image pulling completes, containers start
-- **5-10 min:** Grafana DB migrations, pods become ready
-- **10+ min:** All pods running and healthy
-
-**Healthy Status:**
-```
-NAME                                                     READY   STATUS    RESTARTS   AGE
-alertmanager-prometheus-kube-prometheus-alertmanager-0   2/2     Running   0          10m
-prometheus-grafana-5789c6dd5c-2km5l                      3/3     Running   0          14m
-prometheus-kube-prometheus-operator-787c69dfc5-56jzt     1/1     Running   0          14m
-prometheus-kube-state-metrics-6c67d49fc8-hn2bq           1/1     Running   2          14m
-prometheus-prometheus-kube-prometheus-prometheus-0       2/2     Running   0          10m
-prometheus-prometheus-node-exporter-chbgg                1/1     Running   0          14m
-```
-
-**If pods stay in CrashLoopBackOff:**
-```bash
-# Check logs for errors
-kubectl logs <pod-name> -n monitoring --previous
-
-# Common fix: Increase cluster resources
-minikube stop
-minikube start --cpus=4 --memory=8192 --driver=docker --force
-
-# Reinstall monitoring stack
-./scripts/setup-cluster.sh
-```
-
-**Status:** ✅ Expected behavior - Be patient during first installation
 
 ---
 
-## Quick Reference Commands
+### Error: Service label mismatch in Rollout
 
-### Cluster Management
-
-```bash
-# Install all DevOps tools
-./scripts/install-tools.sh
-
-# Start cluster
-./scripts/start-cluster.sh
-
-# Setup monitoring and ArgoCD
-./scripts/setup-cluster.sh
-
-# Or manually start cluster
-minikube start --driver=docker --cpus=4 --memory=6144 --disk-size=20g --force
-
-# Check cluster status
-minikube status
-kubectl cluster-info
-
-# Stop cluster (preserve state)
-minikube stop
-
-# Delete cluster completely
-minikube delete
+**Symptoms:**
+```
+Service "sample-app" has unmatch label "app.kubernetes.io/managed-by"
 ```
 
-### Troubleshooting Commands
+**Root Cause**: Rollout template missing required labels
+
+**Solution**: Add label to rollout template
+
+```yaml
+# In rollout.yml
+spec:
+  template:
+    metadata:
+      labels:
+        app: sample-app
+        app.kubernetes.io/managed-by: argocd  # Add this
+```
+
+---
+
+## Networking Issues
+
+### Error: Cannot access services via port-forward
+
+**Symptoms:**
+```bash
+kubectl port-forward -n dev svc/sample-app 8080:80
+error: lost connection to pod
+```
+
+**Root Cause**: Service port mismatch or pods not ready
+
+**Solution:**
+```bash
+# Check service configuration
+kubectl get svc -n dev sample-app -o yaml
+
+# Check target port
+kubectl get svc -n dev sample-app -o jsonpath='{.spec.ports[0].targetPort}'
+
+# Check pod readiness
+kubectl get pods -n dev -l app=sample-app
+
+# Use correct ports
+kubectl port-forward -n dev svc/sample-app 8080:80
+```
+
+---
+
+### Error: NetworkPolicy blocking connections
+
+**Symptoms**: Can't access pods even though they're running
+
+**Root Cause**: Too restrictive NetworkPolicy
+
+**Solution**: Update NetworkPolicy to allow required traffic
+
+```yaml
+# In networkpolicy.yml - allow from monitoring
+ingress:
+- from:
+  - namespaceSelector:
+      matchLabels:
+        name: monitoring  # Must match actual namespace label
+```
+
+---
+
+## Load Testing Issues
+
+### Error: K6 test file not found
+
+**Symptoms:**
+```bash
+bash run-load-test.sh baseline k8s dev
+Test file not found: /path/to/baseline-test.js
+```
+
+**Root Cause**: Script looking in wrong directory
+
+**Solution**: Test files are in k6 subdirectory (already fixed)
 
 ```bash
-# Check Docker
-docker ps
-docker info | grep -i 'cgroup\|runtime'
+# Ensure you're in the right directory
+cd ~/Argo-Project/ArgoStack/load-testing
 
-# Check kubectl configuration
-kubectl config view
-kubectl config current-context
+# Run test
+bash run-load-test.sh baseline k8s dev
+```
 
-# Check minikube logs
-minikube logs
+---
 
-# Verify nodes
+## Quick Diagnostic Commands
+
+### Check overall cluster health
+```bash
 kubectl get nodes
-
-# Check all pods
 kubectl get pods --all-namespaces
-
-# Check monitoring stack
-kubectl get pods -n monitoring
-kubectl get pods -n monitoring -w  # watch mode
-
-# Check pod details
-kubectl describe pod <pod-name> -n monitoring
-kubectl logs <pod-name> -n monitoring
-
-# Access Grafana
-kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
-# Then visit: http://localhost:3000 (admin/admin123)
+kubectl top nodes
+kubectl top pods --all-namespaces
 ```
 
-### Complete Reset (Nuclear Option)
-
+### Check ArgoCD applications
 ```bash
-# WARNING: This deletes everything!
-minikube delete --all --purge
-rm -rf ~/.minikube
-rm -rf ~/.kube/config
-
-# Start fresh
-minikube start --driver=docker --force --delete-on-failure
+kubectl get applications -n argocd
+argocd app list
+argocd app get sample-app-dev
 ```
 
----
+### Check monitoring stack
+```bash
+kubectl get pods -n monitoring
+kubectl get svc -n monitoring
+kubectl get prometheusrule -n monitoring
+```
 
-## Environment-Specific Notes
+### Check application status
+```bash
+kubectl get rollout -n dev
+kubectl get pods -n dev
+kubectl logs -n dev -l app=sample-app
+```
 
-### WSL2 (Ubuntu 24.04) Environment
-
-**Confirmed Working Setup:**
-- OS: Ubuntu 24.04 on WSL2
-- Docker: Running (check with `docker ps`)
-- Cluster Tool: Minikube v1.37.0
-- Driver: Docker with --force flag
-- kubectl: Auto-configured by minikube
-
-**Known Issues:**
-- Kind has cgroup v2 compatibility issues → Use Minikube
-- Docker Desktop vs Docker Engine → Prefer Docker Engine
-- Port 80/443 mappings fail in WSL → Not needed for basic setup
-
----
-
-## Prevention Checklist
-
-Before starting a new cluster:
-
-- [ ] Verify Docker is running: `docker ps`
-- [ ] Clean up old clusters: `minikube delete --all`
-- [ ] Verify personal details in configs
-- [ ] Use correct image registry paths
-- [ ] Use `./scripts/start-cluster.sh` for consistent setup
+### View events
+```bash
+kubectl get events --all-namespaces --sort-by='.lastTimestamp'
+kubectl get events -n dev --sort-by='.lastTimestamp'
+```
 
 ---
 
 ## Getting Help
 
-If you encounter new issues:
+If you encounter an issue not covered here:
 
-1. Check this troubleshooting guide first
-2. Run diagnostic commands from Quick Reference section
-3. Check official documentation:
-   - [Minikube Docs](https://minikube.sigs.k8s.io/docs/)
-   - [kubectl Docs](https://kubernetes.io/docs/reference/kubectl/)
-4. Check GitHub issues:
-   - [Minikube Issues](https://github.com/kubernetes/minikube/issues)
+1. Check pod logs: `kubectl logs <pod-name> -n <namespace>`
+2. Describe resources: `kubectl describe <resource> <name> -n <namespace>`
+3. Check events: `kubectl get events -n <namespace>`
+4. View documentation: [docs/complete-documentation.md](complete-documentation.md)
+5. Open an issue on GitHub with error details
 
 ---
 
-**Last Updated:** November 19, 2025 - Full Stack Deployed ✅  
-**Maintainer:** Bamideleflint (oluwafunsho.osho@gmail.com)
-
-**Current Status:**
-- ✅ Minikube cluster running on Docker driver
-- ✅ kubectl configured and connected
-- ✅ Kubernetes v1.34.0 operational
-- ✅ Prometheus monitoring stack deployed
-- ✅ Grafana dashboard accessible
-- ✅ All DevOps tools installed (kubectl, helm, minikube, argocd, etc.)
+**Last Updated**: November 2025
