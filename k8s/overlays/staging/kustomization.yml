@@ -4,7 +4,7 @@ kind: Kustomization
 
 namespace: staging
 
-bases:
+resources:
   - ../../base
 
 replicas:

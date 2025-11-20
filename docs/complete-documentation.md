@@ -278,6 +278,55 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 # Password: [Get from setup output]
 ```
 
+### Dashboard Screenshots
+
+Below are representative screenshots of the running stack. Save files reside in ./images/.
+
+- Grafana – Login
+
+![Grafana – Login](./images/GrafanaLogin page.PNG)
+
+- Grafana – Dashboard list
+
+![Grafana – Dashboard list](./images/Grafanadashboard list.PNG)
+
+- Grafana – Kubernetes / Compute Resources / Cluster
+
+![Grafana – Kubernetes Cluster](./images/Grafana Kubernetes  Compute Resources  Cluster dashboard.PNG)
+
+- Grafana – Kubernetes / Compute Resources / Namespace (Pods)
+
+![Grafana – Namespace (Pods)](./images/Grafana Kubernetes Compute Resources Pod.PNG)
+
+- Prometheus – Main query interface
+
+![Prometheus – Query UI](./images/ Prometheus Main query interface.PNG)
+
+- Prometheus – Targets page
+
+![Prometheus – Targets](./images/ Prometheus Status Targets page showing monitored endpoints.PNG)
+
+- Prometheus – Query result (up, http_requests_total)
+
+![Prometheus – Query Result](./images/ Prometheus A query result up and http_requests_total.PNG)
+
+- ArgoCD – Login
+
+![ArgoCD – Login](./images/ArgoCD login page.PNG)
+
+- ArgoCD – Applications list
+
+![ArgoCD – Applications](./images/ArgoCD Applications list.PNG)
+
+- ArgoCD – sample-app-dev details
+
+![ArgoCD – App Details](./images/ArgoCD Sample app dev details page.PNG)
+
+- Sample App – Root endpoint
+
+![Sample App – Root](./images/Sample App httplocalhost8081 Root endpoint showing JSON response.PNG)
+
+
 ---
 
 ### Quick Start Summary
