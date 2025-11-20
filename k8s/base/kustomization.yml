@@ -6,6 +6,9 @@ resources:
   - deployment.yml
   - service.yml
   - servicemonitor.yml
+  - networkpolicy.yml
+  - poddisruptionbudget.yml
 
-commonLabels:
-  app.kubernetes.io/managed-by: argocd
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: argocd
