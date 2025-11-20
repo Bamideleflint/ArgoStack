@@ -9,6 +9,8 @@ patchesStrategicMerge:
 resources:
   - ../../base
   - rollout.yml
+  - service-canary.yml
+  - analysis-template.yml
 
 replicas:
   - name: sample-app
