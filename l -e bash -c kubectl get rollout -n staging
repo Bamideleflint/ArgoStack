@@ -1,0 +1,5 @@
+[33ma6ee8c8[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdevelop[m[33m, [m[1;31morigin/develop[m[33m)[m Test canary: add status field to root endpoint
+[33md4af6ab[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m CI: route develop branch builds to staging overlay with develop-SHA tags
+[33m9c11871[m Staging: fix rollout - remove startingStep and add managed-by label to template
+[33m6cd5638[m Staging: add canary service and Prometheus-based AnalysisTemplate; wire analysis steps in Rollout
+[33mc3b6674[m Staging: switch to Argo Rollouts canary (delete Deployment, add Rollout) and include canary steps

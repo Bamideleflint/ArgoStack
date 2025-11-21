@@ -6,6 +6,9 @@ namespace: dev
 
 resources:
   - ../../base
+  - rollout.yml
+  - service-canary.yml
+  - analysis-template.yml
 
 replicas:
   - name: sample-app
@@ -15,6 +18,8 @@ images:
   - name: ghcr.io/bamideleflint/argostack/sample-app
     newTag: v1.0.0
 
+patchesStrategicMerge:
+  - patch-delete-deployment.yml
 patches:
   - patch: |-
       - op: replace
@@ -24,5 +29,5 @@ patches:
         path: /spec/template/spec/containers/0/resources/limits/memory
         value: "128Mi"
     target:
-      kind: Deployment
+      kind: Rollout
       name: sample-app

@@ -1,8 +1,8 @@
 {
   "dashboard": {
     "id": null,
-    "title": "Application Dashboard",
-    "tags": ["application"],
+    "title": "Sample-App Metrics Dashboard",
+    "tags": ["application", "sample-app", "canary"],
     "timezone": "browser",
     "schemaVersion": 16,
     "version": 0,
@@ -20,8 +20,8 @@
         },
         "targets": [
           {
-            "expr": "rate(http_requests_total[5m])",
-            "legendFormat": "{{method}} {{path}}",
+            "expr": "sum(rate(http_requests_total{app=\"sample-app\"}[5m])) by (namespace, method, status)",
+            "legendFormat": "{{namespace}} - {{method}} [{{status}}]",
             "refId": "A"
           }
         ],
@@ -51,8 +51,8 @@
         },
         "targets": [
           {
-            "expr": "rate(http_requests_total{status=~\"5..\"}[5m])",
-            "legendFormat": "{{method}} {{path}}",
+            "expr": "sum(rate(http_requests_total{app=\"sample-app\",status=~\"5..\"}[5m])) by (namespace) / sum(rate(http_requests_total{app=\"sample-app\"}[5m])) by (namespace)",
+            "legendFormat": "{{namespace}} error rate",
             "refId": "A"
           }
         ],
@@ -82,7 +82,7 @@
         },
         "targets": [
           {
-            "expr": "container_memory_usage_bytes{container=\"app\"}",
+            "expr": "sum(container_memory_usage_bytes{pod=~\"sample-app.*\",container=\"sample-app\"}) by (namespace)",
             "refId": "A"
           }
         ],
@@ -103,7 +103,7 @@
         },
         "targets": [
           {
-            "expr": "rate(container_cpu_usage_seconds_total{container=\"app\"}[5m])",
+            "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"sample-app.*\",container=\"sample-app\"}[5m])) by (namespace)",
             "refId": "A"
           }
         ],

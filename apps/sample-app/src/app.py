@@ -141,7 +141,8 @@ def index():
         'service': 'Sample Application',
         'version': APP_VERSION,
         'environment': ENVIRONMENT,
-        'status': 'canary-test-active',
+        'status': 'production-ready',
+        'message': 'End-to-end workflow test successful!',
         'endpoints': {
             'health': '/health',
             'ready': '/ready',

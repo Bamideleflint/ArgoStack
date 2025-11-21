@@ -24,11 +24,14 @@ jobs:
           # Add your test commands here
           echo "Running tests..."
       
-      - name: Validate Kubernetes manifests with kubectl
+      - name: Validate Kubernetes manifests with kubeconform
         run: |
-          kubectl version --client
-          kubectl apply --dry-run=client -f k8s/base/deployment.yml
-          kubectl apply --dry-run=client -f k8s/base/service.yml
+          # Install kubeconform (faster, offline schema validation)
+          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+          
+          # Validate manifests
+          kubeconform -summary -output json k8s/base/deployment.yml k8s/base/service.yml
 
   build-and-push:
     needs: test

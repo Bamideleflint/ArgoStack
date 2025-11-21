@@ -10,13 +10,13 @@ data:
         interval: 30s
         rules:
           - alert: HighErrorRate
-            expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+            expr: (sum(rate(http_requests_total{namespace="staging",status=~"5.."}[5m])) / sum(rate(http_requests_total{namespace="staging"}[5m]))) > 0.05
             for: 5m
             labels:
               severity: critical
             annotations:
-              summary: "High error rate detected"
-              description: "Error rate is {{ $value }} for {{ $labels.instance }}"
+              summary: "High error rate detected (staging)"
+              description: "Staging error rate is {{ $value }} for {{ $labels.instance }}"
           
           - alert: HighMemoryUsage
             expr: container_memory_usage_bytes{container!="POD",container!=""} > 500000000
@@ -44,3 +44,127 @@ data:
             annotations:
               summary: "Service is down"
               description: "Service {{ $labels.job }} is down"
+          
+          - alert: PodDown
+            expr: kube_pod_status_phase{phase="Running"} == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Pod {{ $labels.pod }} is down"
+              description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is not running"
+          
+          - alert: PodCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Pod {{ $labels.pod }} is crash looping"
+              description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has restarted {{ $value }} times in the last 15 minutes"
+          
+          - alert: DeploymentReplicasMismatch
+            expr: kube_deployment_spec_replicas != kube_deployment_status_replicas_available
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Deployment {{ $labels.deployment }} replicas mismatch"
+              description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has {{ $value }} unavailable replicas"
+          
+          - alert: ContainerOOMKilled
+            expr: rate(kube_pod_container_status_terminated_reason{reason="OOMKilled"}[5m]) > 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Container OOM killed"
+              description: "Container {{ $labels.container }} in pod {{ $labels.pod }} was OOM killed"
+          
+          - alert: PersistentVolumeClaimPending
+            expr: kube_persistentvolumeclaim_status_phase{phase="Pending"} == 1
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "PVC {{ $labels.persistentvolumeclaim }} is pending"
+              description: "PVC {{ $labels.persistentvolumeclaim }} in namespace {{ $labels.namespace }} is in Pending state"
+      
+      - name: sample_app_alerts
+        interval: 30s
+        rules:
+          - alert: SampleAppHighErrorRate
+            expr: |
+              (sum(rate(http_requests_total{app="sample-app",status=~"5.."}[5m])) by (namespace)
+              /
+              sum(rate(http_requests_total{app="sample-app"}[5m])) by (namespace)) > 0.05
+            for: 5m
+            labels:
+              severity: critical
+              app: sample-app
+            annotations:
+              summary: "High error rate in {{ $labels.namespace }}"
+              description: "Sample-app in {{ $labels.namespace }} has {{ $value | humanizePercentage }} error rate"
+          
+          - alert: SampleAppLowSuccessRate
+            expr: |
+              100 * (1 - (sum(rate(http_requests_total{app="sample-app",status=~"5.."}[5m])) by (namespace)
+              /
+              sum(rate(http_requests_total{app="sample-app"}[5m])) by (namespace))) < 95
+            for: 10m
+            labels:
+              severity: warning
+              app: sample-app
+            annotations:
+              summary: "Low success rate in {{ $labels.namespace }}"
+              description: "Sample-app in {{ $labels.namespace }} has only {{ $value }}% success rate"
+          
+          - alert: SampleAppNoTraffic
+            expr: sum(rate(http_requests_total{app="sample-app"}[10m])) by (namespace) == 0
+            for: 15m
+            labels:
+              severity: warning
+              app: sample-app
+            annotations:
+              summary: "No traffic to sample-app in {{ $labels.namespace }}"
+              description: "Sample-app in {{ $labels.namespace }} has received no requests for 15 minutes"
+          
+          - alert: SampleAppPodNotReady
+            expr: kube_pod_status_ready{pod=~"sample-app.*",condition="true"} == 0
+            for: 5m
+            labels:
+              severity: critical
+              app: sample-app
+            annotations:
+              summary: "Sample-app pod {{ $labels.pod }} not ready"
+              description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is not ready"
+      
+      - name: rollout_alerts
+        interval: 30s
+        rules:
+          - alert: RolloutDegraded
+            expr: kube_rollout_status_phase{phase="Degraded"} == 1
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Rollout {{ $labels.rollout }} is degraded"
+              description: "Rollout {{ $labels.rollout }} in namespace {{ $labels.namespace }} is in Degraded state"
+          
+          - alert: RolloutStuckInProgressing
+            expr: kube_rollout_status_phase{phase="Progressing"} == 1
+            for: 30m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Rollout {{ $labels.rollout }} stuck progressing"
+              description: "Rollout {{ $labels.rollout }} in namespace {{ $labels.namespace }} has been progressing for over 30 minutes"
+          
+          - alert: CanaryAnalysisFailed
+            expr: increase(rollout_analysis_run_metric_phase{phase="Failed"}[5m]) > 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Canary analysis failed for {{ $labels.rollout }}"
+              description: "Analysis run failed for rollout {{ $labels.rollout }} in namespace {{ $labels.namespace }}"

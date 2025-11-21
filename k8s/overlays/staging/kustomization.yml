@@ -18,7 +18,7 @@ replicas:
 
 images:
   - name: ghcr.io/bamideleflint/argostack/sample-app
-    newTag: v1.0.0
+    newTag: develop-a6ee8c8
 
 patches:
   - patch: |-

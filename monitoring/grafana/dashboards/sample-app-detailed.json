@@ -1,0 +1,160 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "sample-app-detailed",
+    "title": "Sample-App Detailed Metrics",
+    "tags": ["sample-app", "performance", "canary"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "10s",
+    "time": {
+      "from": "now-15m",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "graph",
+        "title": "Request Rate by Namespace",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{app=\"sample-app\"}[1m])) by (namespace)",
+            "legendFormat": "{{namespace}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "show": true},
+          {"format": "short", "show": true}
+        ],
+        "legend": {"show": true, "alignAsTable": true, "values": true, "current": true, "avg": true}
+      },
+      {
+        "id": 2,
+        "type": "graph",
+        "title": "Error Rate % by Namespace",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "100 * sum(rate(http_requests_total{app=\"sample-app\",status=~\"5..\"}[1m])) by (namespace) / sum(rate(http_requests_total{app=\"sample-app\"}[1m])) by (namespace)",
+            "legendFormat": "{{namespace}} errors",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "show": true, "min": 0, "max": 100},
+          {"format": "short", "show": true}
+        ],
+        "legend": {"show": true, "alignAsTable": true, "values": true, "current": true, "max": true},
+        "thresholds": [
+          {"value": 5, "colorMode": "critical", "op": "gt", "fill": true, "line": true}
+        ]
+      },
+      {
+        "id": 3,
+        "type": "graph",
+        "title": "Request Status Distribution",
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{app=\"sample-app\"}[1m])) by (namespace, status)",
+            "legendFormat": "{{namespace}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "show": true},
+          {"format": "short", "show": true}
+        ],
+        "legend": {"show": true, "alignAsTable": true, "values": true, "current": true}
+      },
+      {
+        "id": 4,
+        "type": "graph",
+        "title": "Pod Count by Namespace",
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "count(kube_pod_info{pod=~\"sample-app.*\"}) by (namespace)",
+            "legendFormat": "{{namespace}} pods",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "show": true, "decimals": 0},
+          {"format": "short", "show": true}
+        ],
+        "legend": {"show": true, "alignAsTable": true, "values": true, "current": true}
+      },
+      {
+        "id": 5,
+        "type": "singlestat",
+        "title": "Dev Success Rate",
+        "gridPos": {"x": 0, "y": 16, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "100 * (1 - (sum(rate(http_requests_total{app=\"sample-app\",namespace=\"dev\",status=~\"5..\"}[5m])) or vector(0)) / sum(rate(http_requests_total{app=\"sample-app\",namespace=\"dev\"}[5m])))",
+            "refId": "A"
+          }
+        ],
+        "format": "percent",
+        "valueName": "current",
+        "valueFontSize": "80%",
+        "thresholds": "95,99",
+        "colors": ["#d44a3a", "#e0b400", "#299c46"]
+      },
+      {
+        "id": 6,
+        "type": "singlestat",
+        "title": "Staging Success Rate",
+        "gridPos": {"x": 6, "y": 16, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "100 * (1 - (sum(rate(http_requests_total{app=\"sample-app\",namespace=\"staging\",status=~\"5..\"}[5m])) or vector(0)) / sum(rate(http_requests_total{app=\"sample-app\",namespace=\"staging\"}[5m])))",
+            "refId": "A"
+          }
+        ],
+        "format": "percent",
+        "valueName": "current",
+        "valueFontSize": "80%",
+        "thresholds": "95,99",
+        "colors": ["#d44a3a", "#e0b400", "#299c46"]
+      },
+      {
+        "id": 7,
+        "type": "singlestat",
+        "title": "Production Success Rate",
+        "gridPos": {"x": 12, "y": 16, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "100 * (1 - (sum(rate(http_requests_total{app=\"sample-app\",namespace=\"production\",status=~\"5..\"}[5m])) or vector(0)) / sum(rate(http_requests_total{app=\"sample-app\",namespace=\"production\"}[5m])))",
+            "refId": "A"
+          }
+        ],
+        "format": "percent",
+        "valueName": "current",
+        "valueFontSize": "80%",
+        "thresholds": "95,99",
+        "colors": ["#d44a3a", "#e0b400", "#299c46"]
+      },
+      {
+        "id": 8,
+        "type": "singlestat",
+        "title": "Total Request Rate",
+        "gridPos": {"x": 18, "y": 16, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{app=\"sample-app\"}[1m]))",
+            "refId": "A"
+          }
+        ],
+        "format": "reqps",
+        "valueName": "current",
+        "valueFontSize": "80%",
+        "sparkline": {"show": true, "full": false, "lineColor": "rgb(31, 120, 193)"}
+      }
+    ]
+  }
+}
