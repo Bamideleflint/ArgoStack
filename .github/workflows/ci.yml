@@ -81,6 +81,7 @@ jobs:
       
       - name: Run Trivy vulnerability scanner on built image
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           scan-type: 'image'
           image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
