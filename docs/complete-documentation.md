@@ -246,13 +246,15 @@ kubectl create secret generic notification-secrets \
 If you want to deploy the sample application:
 
 ```bash
-# Build and push image
-docker build -t ghcr.io/your-org/sample-app:latest ./apps/sample-app
-docker push ghcr.io/your-org/sample-app:latest
+# Build and push image (or use GitHub Actions)
+docker build -t ghcr.io/bamideleflint/argostack-sample-app:latest ./apps/sample-app
+docker push ghcr.io/bamideleflint/argostack-sample-app:latest
 
 # Deploy to production
 kubectl apply -f argocd/applications/sample-app-prod.yml
 ```
+
+**Note**: GitHub Actions automatically builds and pushes images on every push to main branch to `ghcr.io/bamideleflint/argostack-sample-app`
 
 ### Step 6: Access Dashboards
 
@@ -733,7 +735,7 @@ Scan images for vulnerabilities:
 curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 # Scan image
-trivy image ghcr.io/your-org/sample-app:latest
+trivy image ghcr.io/bamideleflint/argostack-sample-app:latest
 ```
 
 ### Secret Management

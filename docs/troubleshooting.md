@@ -71,6 +71,8 @@ kubectl create secret docker-registry ghcr-secret \
   --docker-username=YOUR_GITHUB_USERNAME \
   --docker-password=YOUR_GITHUB_PAT \
   -n production
+
+# Note: Current image is at ghcr.io/bamideleflint/argostack-sample-app
 ```
 
 ---
@@ -97,6 +99,44 @@ helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
   --timeout 20m \
   --wait
 ```
+
+---
+
+### Error: GitHub Actions can't push to GHCR (permission_denied: write_package)
+
+**Symptoms:**
+```
+ERROR: failed to push ghcr.io/bamideleflint/argostack-sample-app:main: 
+denied: permission_denied: write_package
+```
+
+**Root Cause**: GitHub Actions workflow doesn't have write permissions for packages
+
+**Solution:**
+
+1. **Update Repository Settings:**
+   - Go to: `https://github.com/YOUR_USERNAME/ArgoStack/settings/actions`
+   - Scroll to "Workflow permissions"
+   - Select: ✅ **"Read and write permissions"**
+   - Check: ✅ **"Allow GitHub Actions to create and approve pull requests"**
+   - Click **Save**
+
+2. **Verify Workflow Permissions:**
+   ```yaml
+   # In .github/workflows/ci.yml
+   build-and-push:
+     permissions:
+       contents: write
+       packages: write
+       id-token: write
+   ```
+
+3. **Re-run Failed Workflow:**
+   - Go to Actions tab in GitHub
+   - Click on the failed workflow run
+   - Click "Re-run all jobs"
+
+**Note**: The image name should be `ghcr.io/bamideleflint/argostack-sample-app` (not nested like `bamideleflint/argostack/sample-app`)
 
 ---
 

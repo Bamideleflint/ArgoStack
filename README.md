@@ -67,9 +67,10 @@ kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
 - ServiceMonitor for automatic scraping
 
 ### 5. CI/CD Pipelines (`.github/workflows/`)
-- **ci.yml**: Build, test, scan on every push
-- **security-scan.yml**: Trivy + kube-score
+- **ci.yml**: Build, test, push to GHCR on every push
+- **security-scan.yml**: Trivy vulnerability scanning + kube-score
 - **release.yml**: Production releases via tags
+- Image Registry: `ghcr.io/bamideleflint/argostack-sample-app`
 
 ### 6. Load Testing (`load-testing/`)
 - K6 scenarios: baseline, stress, spike, soak
