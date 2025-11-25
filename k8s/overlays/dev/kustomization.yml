@@ -16,7 +16,7 @@ replicas:
 
 images:
   - name: ghcr.io/bamideleflint/argostack/sample-app
-    newTag: v1.0.0
+    newTag: main-e1e6ea7
 
 patchesStrategicMerge:
   - patch-delete-deployment.yml
